@@ -36,6 +36,21 @@ LoopBackground:
 .endproc
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Subroutine to load 16 bytes of attribute for the first nametable
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+.proc LoadAttributes
+    ldy #0                   ; Y = 0
+:
+    lda AttributeData,y     ; Lookup byte in ROM
+    sta PPU_DATA             ; Set value to send to PPU_DATA
+    iny                      ; Y++
+    cpy #16                 ; Is Y equal to 255?
+    bne :-       ; Not yet, keep looping
+    rts                      ; Return from subroutine
+.endproc
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Reset handler (called when the NES resets or powers on)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Reset:
@@ -57,6 +72,15 @@ Main:
     ldx #$00
     stx PPU_ADDR             ; Set lo-byte of PPU_ADDR to $00
     jsr LoadBackground       ; Jump to subroutine LoadBackground
+
+    ;; now humlog ko attribute load karna padega jo ki 4*4 section ke liye hota hai after 960 bytes of nametable 
+    ;; Load Attribute Table
+    bit PPU_STATUS           ; Read PPU_STATUS to reset the 
+    ldx #$23               ; Set hi-byte of PPU_ADDR to $23 (attribute table address)
+    stx PPU_ADDR             ; Set hi-byte of PPU_ADDR to $23
+    ldx #$C0
+    stx PPU_ADDR             ; Set lo-byte of PPU_ADDR to $00
+    jsr LoadAttributes       ; Jump to subroutine LoadAttributeTable
 
 EnablePPURendering:
     lda #%10010000           ; Enable NMI and set background to use the 2nd pattern table (at $1000)
@@ -83,8 +107,8 @@ IRQ:
 ;; Hardcoded list of color values in ROM to be loaded by the PPU
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 PaletteData:
-.byte $0F,$2A,$0C,$3A, $0F,$2A,$0C,$3A, $0F,$2A,$0C,$3A, $0F,$2A,$0C,$3A ; Background
-.byte $0F,$10,$00,$26, $0F,$10,$00,$26, $0F,$10,$00,$26, $0F,$10,$00,$26 ; Sprites
+.byte $22,$29,$1a,$0F,$22,$36,$17,$0F,$22,$30,$21,$0F,$22,$27,$17,$0F ; Background
+.byte $22,$16,$27,$18,$22,$1A,$30,$27,$22,$16,$30,$27,$22,$0F,$36,$17 ; Sprites
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Background data that must be copied to the nametable
@@ -98,6 +122,16 @@ BackgroundData:
 .byte $47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47
 .byte $47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47,$47
 .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Attribute data that used for 4*4 sections of the background(to change that)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+AttributeData:
+.byte %00000000,%00000000,%10101010,%00000000,%11110000,%00000000,%00000000,%00000000
+.byte %11111111,%11111111,%11111111,%11111111,%11111111,%11111111,%11111111,%11111111
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Here we add the CHR-ROM data, included from an external .CHR file
