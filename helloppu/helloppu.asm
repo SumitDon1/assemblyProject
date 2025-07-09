@@ -26,6 +26,7 @@ Reset:
     INIT_NES
 
 Main:
+    ; Tell the PPU to display a lime green background by setting the first colour of the palette to $2A at PPU address$3F00 
     ; setting the main backgnd color to $2A(lime green)
     ; see image 25-06-04 185833
     bit PPU_STATUS
